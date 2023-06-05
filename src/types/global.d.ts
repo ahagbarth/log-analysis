@@ -1,6 +1,23 @@
 export {};
 
 declare global {
+  interface IData {
+    host: string,
+    datetime: {
+      day: number,
+      hour: number,
+      minute: number,
+      second: number
+    },
+    request: {
+      method: string,
+      url:string,
+      protocol: string,
+      protocol_version: string
+    },
+    response_code: number,
+    document_size: number
+  }[]
   interface IGetLocalData {
     fileName: string;
   }
@@ -23,7 +40,7 @@ declare global {
     host: string | null;
     datetime: IParseDateResponse;
     request: IParseRequestResponse;
-    response_code: number | null;
+    response_code: number | string;
     document_size: number;
   }
   interface IParseRequestResponse {

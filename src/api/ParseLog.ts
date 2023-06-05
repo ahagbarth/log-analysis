@@ -2,15 +2,14 @@ import path from "path";
 import fs from "fs";
 import { Transform } from "stream";
 
-const getLocalData = async ({
-  fileName,
-}: IGetLocalData): Promise<string> => {
+const parseFile = async ({ fileName }: IGetLocalData) => {
   const filePath: string = path.join(process.cwd(), "src/data/" + fileName);
   const fileStream = fs.createReadStream(filePath, "utf-8");
-  const transformedData = fs.createWriteStream("./transformedData.json");
+  const transformedData = fs.createWriteStream(
+    "./public/json/transformedData.json"
+  );
 
   let processedData: any[] = [];
-
   const parseData = new Transform({
     writableObjectMode: true,
     transform(chunk, encoding, callback) {
@@ -18,25 +17,23 @@ const getLocalData = async ({
       callback();
     },
   });
-
-  fileStream
+  await fileStream
     .on("error", (e) => console.error(`Error reading file: ${e}`))
     .pipe(parseData)
     .on("error", (e) => console.error(`Error processing file: ${e}`))
     .on("finish", () => {
       transformedData.write(JSON.stringify(processedData, null, 2));
       transformedData.end();
-      console.log("processed");
     })
     .on("error", (e) => console.error(`Error writing file: ${e}`));
 
-  return "hello";
+  return "processed";
 };
 
-const processData = ({ data }: IProcessData): IProcessLineResponse[] =>
+export const processData = ({ data }: IProcessData): IProcessLineResponse[] =>
   data.split("\n").map((line: string) => processLine({ line }));
 
-const processLine = ({ line }: IProcessLine): IProcessLineResponse => {
+export const processLine = ({ line }: IProcessLine): IProcessLineResponse => {
   const [host, date, method, url, protocol, code, bytes] = line.split(" ");
   const newCode = parseInt(code);
   const newBytes = parseInt(bytes);
@@ -44,12 +41,12 @@ const processLine = ({ line }: IProcessLine): IProcessLineResponse => {
     host: host === "-" ? null : host,
     datetime: parseDate({ date }),
     request: parseRequest({ method, url, protocol }),
-    response_code: newCode >= 100 && newCode <= 599 ? newCode : null,
+    response_code: newCode >= 100 && newCode <= 599 ? newCode : "Invalid data",
     document_size: newBytes,
   };
 };
 
-const parseDate = ({ date }: IParseDate): IParseDateResponse => {
+export const parseDate = ({ date }: IParseDate): IParseDateResponse => {
   const matches = date
     ? date.match(/\[(\d{2}):(\d{2}):(\d{2}):(\d{2})\]/)
     : null;
@@ -73,7 +70,7 @@ const parseDate = ({ date }: IParseDate): IParseDateResponse => {
   };
 };
 
-const parseRequest = ({
+export const parseRequest = ({
   method,
   url,
   protocol,
@@ -97,11 +94,11 @@ const parseRequest = ({
   const protocolVersion = splitProtocol ? splitProtocol[1] : null;
 
   return {
-    method: possibleMethods.includes(newMethod) ? newMethod : null,
+    method: possibleMethods.includes(newMethod) ? newMethod : "Invalid data",
     url,
     protocol: protocolName,
     protocol_version: protocolVersion,
   };
 };
 
-export default getLocalData({ fileName: "epa-http.txt" });
+export default parseFile({ fileName: "epa-http.txt" });
